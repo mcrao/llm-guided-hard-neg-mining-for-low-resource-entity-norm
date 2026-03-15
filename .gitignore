@@ -1,0 +1,93 @@
+# ── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# ── Virtual environment ───────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+
+# ── Environment / secrets ─────────────────────────────────────────────────────
+# Keep .env.example — it documents required variables without exposing values
+.env
+.env.local
+.env.*.local
+
+# ── Data (large files — regenerate with scripts/prepare_data.py) ──────────────
+data/raw/
+data/processed/
+data/splits/*.parquet
+
+# Keep the small split statistics summary
+!data/splits/split_stats.json
+
+# ── Trained model weights (large .safetensors files) ──────────────────────────
+# Regenerate with scripts/run_baselines.py or scripts/train.py
+models/
+
+# ── Experiment / wandb logs ───────────────────────────────────────────────────
+wandb/
+runs/
+lightning_logs/
+*.wandb
+
+# ── LLM-generated negative cache (M3 — large, reproducible from generate_negatives.py)
+data/negatives_cache/
+results/ablations/raw/
+
+# ── Context and mentor-shared docs (not for public repo) ─────────────────────
+context/
+manuscript/
+
+# ── Jupyter ───────────────────────────────────────────────────────────────────
+.ipynb_checkpoints/
+*.ipynb~
+
+# ── LaTeX build artefacts ─────────────────────────────────────────────────────
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.lof
+*.log
+*.lot
+*.out
+*.run.xml
+*.synctex.gz
+*.toc
+*.xdv
+
+# ── macOS ─────────────────────────────────────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# ── IDE ───────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ── Claude Code local settings ────────────────────────────────────────────────
+.claude/
+
+# ── Miscellaneous ─────────────────────────────────────────────────────────────
+*.log
+*.tmp
+*.temp
+.cache/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/

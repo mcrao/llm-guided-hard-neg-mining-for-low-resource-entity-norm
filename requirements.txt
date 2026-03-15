@@ -1,0 +1,34 @@
+# ============================================================
+#  requirements.txt — WDC Hard Negative Mining Project
+#  Generated for pip compatibility alongside pyproject.toml.
+#  Prefer:  uv sync   (installs from pyproject.toml + uv.lock)
+#  Fallback: pip install -r requirements.txt
+# ============================================================
+
+# Core ML stack
+torch>=2.2.0
+transformers>=4.40.0
+sentence-transformers>=3.0.0
+datasets>=2.19.0
+accelerate>=0.29.0
+
+# Data & numerics
+pandas>=2.2.0
+numpy>=1.26.0
+scikit-learn>=1.4.0
+pyarrow>=15.0.0
+
+# Vector search (used in Milestones 3-4 for ANCE-style mining)
+faiss-cpu>=1.8.0
+
+# Utilities
+tqdm>=4.66.0
+rich>=13.7.0
+typer>=0.12.0
+python-dotenv>=1.0.0
+requests>=2.31.0
+pyyaml>=6.0.1
+click>=8.1.0
+
+# Evaluation
+evaluate>=0.4.0
