@@ -111,13 +111,25 @@ def create_low_resource_splits(
     _check_label_balance(train_df, "full training set")
 
     # ── Derive test holdout when gold-standard file unavailable ───────────
-    test_was_empty = len(test_df) == 0
+    # Check the OUTPUT split (splits_dir/computers_test.parquet), not the raw
+    # input (test_path). The raw file is permanently empty when the WDC gold-
+    # standard is unavailable; checking it would trigger re-carving on every
+    # run, defeating the training-split cache and risking a different partition
+    # if the seed ever changes.
+    test_out = splits_dir / "computers_test.parquet"
+    raw_test_empty    = len(test_df) == 0
+    output_test_ready = test_out.exists() and len(pd.read_parquet(test_out)) > 0
+
+    # Only carve a new holdout if: raw is empty AND output doesn't exist yet
+    # (or --force is set to explicitly re-carve).
+    test_was_empty = raw_test_empty and (not output_test_ready or force)
+
     if test_was_empty:
         log.warning(
             "Test split is empty (gold-standard file unavailable). "
             "Carving a stratified 10% holdout from the full training set. "
             "Training splits will be created from the remaining 90%. "
-            "Pass --force to re-run with this behaviour if splits already exist."
+            "Pass --force to re-carve if splits already exist."
         )
         train_df, test_df = train_test_split(
             train_df,
@@ -137,6 +149,11 @@ def create_low_resource_splits(
             f"match={int((train_df['label'] == 1).sum()):,}"
         )
         _check_label_balance(train_df, "train after holdout")
+    elif raw_test_empty and output_test_ready:
+        log.info(
+            "Test holdout already exists in splits dir — reusing. "
+            "Pass --force to re-carve from the current training data."
+        )
 
     output_paths: Dict[str, Path] = {}
     stats: Dict[str, Dict] = {}
@@ -164,8 +181,8 @@ def create_low_resource_splits(
         )
 
     # ── Val / test (always 100%) ───────────────────────────
-    val_out  = splits_dir / "computers_val.parquet"
-    test_out = splits_dir / "computers_test.parquet"
+    val_out = splits_dir / "computers_val.parquet"
+    # test_out declared earlier (needed for the holdout-exists check above)
 
     if not val_out.exists() or force:
         val_df.to_parquet(val_out, index=False)

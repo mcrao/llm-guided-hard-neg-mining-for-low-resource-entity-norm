@@ -135,10 +135,12 @@ project/
 ```
 
 > **Note on the test split:** The WDC LSPC gold-standard file (`computers_gs.json.gz`) is not
-> available from the WDC server or HuggingFace.  When `splits.py` detects an empty test set it
-> automatically carves a stratified 10% holdout from the full training data (seed=42) and
-> regenerates all training splits from the remaining 90%.  Re-run `prepare_data.py --force` on
-> a machine that has the raw data to apply this fix.  All current M2 evaluation is on
+> available from the WDC server or HuggingFace.  On the **first run**, `splits.py` detects that
+> `data/raw/computers_test.parquet` is empty and automatically carves a stratified 10% holdout
+> from the full training data (seed=42), then regenerates all training splits from the remaining
+> 90%.  On **subsequent runs** it detects that `data/splits/computers_test.parquet` already
+> exists and is non-empty, so the holdout and training splits are left untouched (idempotent).
+> Use `prepare_data.py --force` to explicitly re-carve.  All current M2 evaluation is on
 > `computers_val.parquet`; the held-out test set will be used for final evaluation in M4.
 
 ---
@@ -309,8 +311,10 @@ Output: `data/raw/computers_train_xlarge.parquet`, `computers_val.parquet`, `com
 **Step 2 — Split creation** (`src/wdc_hn/data/splits.py`)
 
 `create_low_resource_splits()` uses `sklearn.train_test_split` with `stratify=label` to
-guarantee the 14.15% match ratio is preserved in every sub-sample. Output files are only
-written if they do not already exist (idempotent).
+guarantee the 14.15% match ratio is preserved in every sub-sample.  The function is
+**idempotent**: it checks `splits_dir/computers_test.parquet` (not the raw input) to decide
+whether to carve a test holdout, so re-running never re-partitions an already-fixed split.
+Output files are skipped if they already exist; pass `--force` to regenerate.
 
 **Step 3 — Smoke test**
 
@@ -751,9 +755,10 @@ uv run python scripts/test_wdc_prompts.py --strategy chain_of_thought --n 10
 `results/baselines.csv` and a technical analysis report (`milestone2_analysis.pdf`) were
 shared with Dr. Raj Dandekar.  Mentor feedback received and two issues addressed:
 
-1. **Empty test split** — `splits.py` now auto-carves a stratified 10% holdout from training
-   data when the WDC gold-standard file is unavailable.  Run `prepare_data.py --force` to
-   regenerate all splits.
+1. **Empty test split** — `splits.py` auto-carves a stratified 10% holdout from training data
+   on the first run when the WDC gold-standard file is unavailable.  Subsequent runs detect the
+   existing output and skip re-carving (idempotent).  Run `prepare_data.py --force` to
+   explicitly re-partition.
 
 2. **Acc@1 plateau** — documented as structural (in-batch negative deficit, not a training
    budget issue).  Use `scripts/sweep_epochs.py` to verify on Colab.
