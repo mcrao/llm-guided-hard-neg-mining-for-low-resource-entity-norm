@@ -1,25 +1,25 @@
 {
   "10pct": {
     "name": "train_10pct",
-    "n_pairs": 5477,
-    "n_match": 775,
-    "n_non_match": 4702,
+    "n_pairs": 4930,
+    "n_match": 698,
+    "n_non_match": 4232,
     "n_hard_neg": 0,
-    "match_fraction": 0.1415
+    "match_fraction": 0.1416
   },
   "25pct": {
     "name": "train_25pct",
-    "n_pairs": 13692,
-    "n_match": 1938,
-    "n_non_match": 11754,
+    "n_pairs": 12323,
+    "n_match": 1744,
+    "n_non_match": 10579,
     "n_hard_neg": 0,
     "match_fraction": 0.1415
   },
   "100pct": {
     "name": "train_100pct",
-    "n_pairs": 54768,
-    "n_match": 7752,
-    "n_non_match": 47016,
+    "n_pairs": 49291,
+    "n_match": 6977,
+    "n_non_match": 42314,
     "n_hard_neg": 0,
     "match_fraction": 0.1415
   },
@@ -33,10 +33,10 @@
   },
   "test": {
     "name": "test",
-    "n_pairs": 0,
-    "n_match": 0,
-    "n_non_match": 0,
+    "n_pairs": 5477,
+    "n_match": 775,
+    "n_non_match": 4702,
     "n_hard_neg": 0,
-    "match_fraction": NaN
+    "match_fraction": 0.1415
   }
 }

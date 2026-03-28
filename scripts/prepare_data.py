@@ -117,6 +117,7 @@ def main(
         test_path=test_path,
         splits_dir=splits_dir,
         seed=seed,
+        force=force,
     )
 
     # ── Step 3: Dataset smoke test ─────────────────────────
