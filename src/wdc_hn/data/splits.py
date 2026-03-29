@@ -154,6 +154,19 @@ def create_low_resource_splits(
             "Test holdout already exists in splits dir — reusing. "
             "Pass --force to re-carve from the current training data."
         )
+        # Bug B fix: load the existing test split so split_stats.json reflects
+        # the real row count, not the permanently-empty raw file.
+        test_df = pd.read_parquet(test_out)
+        # Bug A fix: trim train_df by the same 90/10 split used at carve time.
+        # If training split files were deleted while test_out was kept, any
+        # regenerated training splits must not contain the held-out test rows.
+        train_df, _ = train_test_split(
+            train_df,
+            test_size=0.10,
+            random_state=seed,
+            stratify=train_df["label"],
+        )
+        train_df = train_df.reset_index(drop=True)
 
     output_paths: Dict[str, Path] = {}
     stats: Dict[str, Dict] = {}
