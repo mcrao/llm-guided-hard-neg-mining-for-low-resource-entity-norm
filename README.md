@@ -88,11 +88,11 @@ project/
 │   │   ├── computers_test.parquet
 │   │   └── .hf_cache/          # HuggingFace Hub download cache
 │   └── splits/                 # stratified low-resource training splits
-│       ├── computers_train_10pct.parquet   # 5,477 pairs (775 matches)
-│       ├── computers_train_25pct.parquet   # 13,692 pairs (1,938 matches)
-│       ├── computers_train_100pct.parquet  # 54,768 pairs (7,752 matches)
+│       ├── computers_train_10pct.parquet   # 4,930 pairs (698 matches)
+│       ├── computers_train_25pct.parquet   # 12,323 pairs (1,744 matches)
+│       ├── computers_train_100pct.parquet  # 49,291 pairs (6,977 matches)
 │       ├── computers_val.parquet           # 13,693 pairs (1,938 matches)
-│       ├── computers_test.parquet          # held-out test set (auto-carved from train)
+│       ├── computers_test.parquet          # 5,477 pairs (775 matches) — held-out test set
 │       └── split_stats.json               # exact row counts for every split
 │
 ├── src/wdc_hn/                 # installable Python package (wdc_hn)
@@ -226,23 +226,23 @@ English Computers subset.  Also mirrored at HuggingFace (`wdc/products-2017`).
 
 | Split file | Total pairs | Matches (label=1) | Non-matches (label=0) | Match % |
 |-----------|------------|-------------------|-----------------------|---------|
-| `computers_train_10pct.parquet` | 5,477 | 775 | 4,702 | 14.15% |
-| `computers_train_25pct.parquet` | 13,692 | 1,938 | 11,754 | 14.15% |
-| `computers_train_100pct.parquet` | 54,768 | 7,752 | 47,016 | 14.15% |
+| `computers_train_10pct.parquet` | 4,930 | 698 | 4,232 | 14.16% |
+| `computers_train_25pct.parquet` | 12,323 | 1,744 | 10,579 | 14.15% |
+| `computers_train_100pct.parquet` | 49,291 | 6,977 | 42,314 | 14.15% |
 | `computers_val.parquet` | 13,693 | 1,938 | 11,755 | 14.15% |
-| `computers_test.parquet` | ~4,930 | ~698 | ~4,232 | 14.15% (auto-carved holdout) |
+| `computers_test.parquet` | 5,477 | 775 | 4,702 | 14.15% (stratified holdout) |
 
-> The match ratio is preserved across all splits (14.15%) thanks to stratified sampling in `splits.py`.
-> Test split sizes above are estimates based on a 10% holdout of `train_100pct`; run `prepare_data.py --force`
-> to generate the exact numbers and update `split_stats.json`.
+> The match ratio is preserved at ~14.15% across all splits thanks to stratified sampling.
+> Training split sizes are smaller than the original M2 splits because 10% of the full training
+> data was carved out as the held-out test set.  Numbers sourced from `data/splits/split_stats.json`.
 
 ### Research rationale for three training splits
 
 | Split | Match pairs | Research purpose |
 |-------|------------|-----------------|
-| `train_10pct` | 775 | **Very low-resource** — where LLM hard negatives should help *most* (RQ3) |
-| `train_25pct` | 1,938 | **Moderate low-resource** — middle of the learning curve |
-| `train_100pct` | 7,752 | **Full data** — upper-bound baseline; measures ceiling performance |
+| `train_10pct` | 698 | **Very low-resource** — where LLM hard negatives should help *most* (RQ3) |
+| `train_25pct` | 1,744 | **Moderate low-resource** — middle of the learning curve |
+| `train_100pct` | 6,977 | **Full data** — upper-bound baseline; measures ceiling performance |
 
 ### Dataset schema
 
@@ -582,8 +582,11 @@ that differ only by model number or storage configuration.
 
 ### Bi-encoder baseline (run 2026-03-14, NVIDIA T4, Google Colab)
 
-| Method | Train split | Eval split | Acc@1 | Acc@5 | MRR | Train pairs | Train time |
-|--------|------------|------------|-------|-------|-----|------------|-----------|
+> **Note:** These baselines were run before the test holdout was carved.  Train pair counts
+> reflect the original (pre-holdout) splits; updated split sizes are in the table above.
+
+| Method | Train split | Eval split | Acc@1 | Acc@5 | MRR | Train pairs (orig) | Train time |
+|--------|------------|------------|-------|-------|-----|-------------------|-----------|
 | `bi_encoder_in_batch` | train_10pct | val | 0.0454 | 0.5325 | 0.2554 | 775 | 115.5 s |
 | `bi_encoder_in_batch` | train_25pct | val | 0.0439 | 0.5552 | 0.2656 | 1,938 | 182.9 s |
 | `bi_encoder_in_batch` | train_100pct | val | 0.0454 | 0.6022 | 0.2819 | 7,752 | 720.7 s |
@@ -596,13 +599,20 @@ distant non-matches (random other products in the batch), never to near-duplicat
 like "iPhone 14 Pro 256GB" vs "iPhone 14 Pro Max 256GB".  M3 is designed to break this ceiling
 by injecting LLM-generated hard negatives.
 
-To investigate whether more training epochs help (spoiler: they don't — the plateau is
-structural, not a training-budget issue):
+### Epoch sweep — Acc@1 plateau confirmation (run 2026-03-29, NVIDIA T4, Google Colab)
 
-```bash
-uv run python scripts/sweep_epochs.py --split train_100pct
-# Sweeps 3, 5, 10, 15 epochs → results/epoch_sweep.csv
-```
+Trained on `train_100pct` (6,977 match pairs, post-holdout) at 3, 5, 10, 15 epochs:
+
+| Epochs | Acc@1 | Acc@5 | MRR | Train time |
+|--------|-------|-------|-----|-----------|
+| 3 | 0.0439 | 0.5929 | 0.2759 | 693.6 s |
+| 5 | 0.0439 | 0.6223 | 0.2844 | 1,088.1 s |
+| 10 | 0.0464 | 0.6352 | 0.2881 | 2,097.5 s |
+| 15 | 0.0475 | 0.6285 | 0.2875 | 3,162.3 s |
+
+**Finding:** Acc@1 is essentially flat (0.044–0.048) while training time increases 4.6×.
+The Acc@1 ceiling is structural — caused by the absence of hard negatives during training,
+not insufficient training budget.  This directly motivates M3.
 
 ---
 
@@ -678,9 +688,9 @@ cat results/baselines.csv
 |------|--------------|
 | `prepare_data.py` (download + split) | 5–15 min (network-dependent) |
 | BM25 evaluation | ~2 seconds |
-| Bi-encoder training, 10pct (775 pairs, 3 epochs) | ~5 min on MPS / ~15 min on CPU |
-| Bi-encoder training, 25pct (1,938 pairs, 3 epochs) | ~12 min on MPS / ~35 min on CPU |
-| Bi-encoder training, 100pct (7,752 pairs, 3 epochs) | ~45 min on MPS / ~2.5 hr on CPU |
+| Bi-encoder training, 10pct (698 pairs, 3 epochs) | ~5 min on MPS / ~15 min on CPU |
+| Bi-encoder training, 25pct (1,744 pairs, 3 epochs) | ~12 min on MPS / ~35 min on CPU |
+| Bi-encoder training, 100pct (6,977 pairs, 3 epochs) | ~45 min on MPS / ~2.5 hr on CPU |
 | Bi-encoder evaluation (encode 3,479 + 1,938 texts) | ~30 seconds on MPS |
 
 ### Reproducibility details

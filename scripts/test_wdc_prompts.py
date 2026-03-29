@@ -6,6 +6,9 @@ Loads product texts from the val split and prints all three prompt
 strategies × all four negative types for a sample of products.
 No API calls — purely for visual inspection before sending to mentor.
 
+Always writes a full plain-text copy to manuscript/milestone3/wdc_prompts_preview.md
+so the complete output can be read without terminal truncation.
+
 Usage
 -----
   uv run python scripts/test_wdc_prompts.py               # 5 random products
@@ -18,6 +21,7 @@ Usage
 from __future__ import annotations
 
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -35,7 +39,9 @@ from wdc_hn.utils import console, get_logger
 log = get_logger(__name__)
 app = typer.Typer(add_completion=False, pretty_exceptions_enable=False)
 
-SPLITS_DIR = PROJECT_ROOT / "data" / "splits"
+SPLITS_DIR   = PROJECT_ROOT / "data" / "splits"
+MANUSCRIPT3  = PROJECT_ROOT / "manuscript" / "milestone3"
+OUTPUT_FILE  = MANUSCRIPT3 / "wdc_prompts_preview.md"
 
 ALL_TYPES      = list(_TYPE_INSTRUCTIONS.keys())
 ALL_STRATEGIES = ["zero_shot", "few_shot", "chain_of_thought"]
@@ -89,6 +95,19 @@ def main(
         f"— {n} products × {len(types_to_show)} type(s) × {len(strategies_to_show)} strategy(ies)"
     )
 
+    # Accumulate markdown lines for the output file in parallel with terminal output
+    md_lines: list[str] = [
+        "# WDC Hard-Negative Prompt Preview",
+        "",
+        f"**Generated:** {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}  ",
+        f"**Split:** `{split}` | **Products:** {n} | "
+        f"**Types:** {', '.join(types_to_show)} | "
+        f"**Strategies:** {', '.join(strategies_to_show)}",
+        "",
+        "---",
+        "",
+    ]
+
     for idx, (_, row) in enumerate(sample.iterrows(), start=1):
         product_text = build_text(
             title=row.get("title_left"),
@@ -104,6 +123,17 @@ def main(
                 border_style="dim",
             )
         )
+
+        md_lines += [
+            f"## Product {idx} / {n}",
+            "",
+            f"**Product text:**",
+            "",
+            f"```",
+            product_text,
+            f"```",
+            "",
+        ]
 
         for neg_type in types_to_show:
             for strat in strategies_to_show:
@@ -124,10 +154,27 @@ def main(
                     )
                 )
 
+                md_lines += [
+                    f"### `{neg_type}` / `{strat}`",
+                    "",
+                    "```",
+                    prompt,
+                    "```",
+                    "",
+                ]
+
+        md_lines += ["---", ""]
+
+    # ── Write markdown file ───────────────────────────────────────────────────
+    MANUSCRIPT3.mkdir(parents=True, exist_ok=True)
+    OUTPUT_FILE.write_text("\n".join(md_lines), encoding="utf-8")
+    log.info(f"[green]✓[/green] Full prompts saved to [cyan]{OUTPUT_FILE}[/cyan]")
+
     console.print(
         "\n[bold green]Done.[/bold green] "
         "Review the prompts above and share with mentor for approval "
         "before running the full generation pipeline.\n"
+        f"\n[bold]Full output saved to:[/bold] [cyan]{OUTPUT_FILE}[/cyan]\n"
         "\n[bold]Next step:[/bold]\n"
         "  1. Select the best strategy + type combination\n"
         "  2. Implement generate_negatives.py to call the LLM API\n"
