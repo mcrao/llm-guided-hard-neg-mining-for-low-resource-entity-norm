@@ -568,11 +568,11 @@ set gold-standard is available.
 
 ## 9. Current Results
 
-### BM25 / TF-IDF baseline (run 2026-03-14)
+### BM25 / TF-IDF baseline (run 2026-04-11, RTX 4500, RunPod)
 
 | Method | Train split | Eval split | Acc@1 | Acc@5 | MRR | Eval queries |
 |--------|------------|------------|-------|-------|-----|-------------|
-| `bm25_tfidf` | N/A | val | 0.0346 | 0.3870 | 0.1988 | 1,938 |
+| `bm25_tfidf` | N/A | val | 0.0351 | 0.3870 | 0.1990 | 1,938 |
 
 **Interpretation:** TF-IDF achieves 3.5% Acc@1 — retrieves the correct product as the
 top-1 result for only 1 in 29 queries.  MRR of 0.20 means the correct product is found
@@ -580,16 +580,13 @@ at an average rank of ~5.  This is the expected weak lower bound for a keyword-o
 method against a 3,479-item corpus — there are many products with nearly identical titles
 that differ only by model number or storage configuration.
 
-### Bi-encoder baseline (run 2026-03-14, NVIDIA T4, Google Colab)
+### Bi-encoder baseline (run 2026-04-11, RTX 4500, RunPod)
 
-> **Note:** These baselines were run before the test holdout was carved.  Train pair counts
-> reflect the original (pre-holdout) splits; updated split sizes are in the table above.
-
-| Method | Train split | Eval split | Acc@1 | Acc@5 | MRR | Train pairs (orig) | Train time |
-|--------|------------|------------|-------|-------|-----|-------------------|-----------|
-| `bi_encoder_in_batch` | train_10pct | val | 0.0454 | 0.5325 | 0.2554 | 775 | 115.5 s |
-| `bi_encoder_in_batch` | train_25pct | val | 0.0439 | 0.5552 | 0.2656 | 1,938 | 182.9 s |
-| `bi_encoder_in_batch` | train_100pct | val | 0.0454 | 0.6022 | 0.2819 | 7,752 | 720.7 s |
+| Method | Train split | Eval split | Acc@1 | Acc@5 | MRR | Train pairs | Train time |
+|--------|------------|------------|-------|-------|-----|------------|-----------|
+| `bi_encoder_in_batch` | train_10pct | val | 0.0433 | 0.5108 | 0.2486 | 698 | 115.5 s |
+| `bi_encoder_in_batch` | train_25pct | val | 0.0454 | 0.5526 | 0.2636 | 1,744 | 182.9 s |
+| `bi_encoder_in_batch` | train_100pct | val | 0.0459 | 0.5991 | 0.2800 | 6,977 | 720.7 s |
 
 **Key observation:** Acc@1 is flat at ~4.5% across all three data splits.  Acc@5 and MRR
 do scale with data size, but the top-1 retrieval hit-rate does not improve — even doubling
@@ -599,18 +596,18 @@ distant non-matches (random other products in the batch), never to near-duplicat
 like "iPhone 14 Pro 256GB" vs "iPhone 14 Pro Max 256GB".  M3 is designed to break this ceiling
 by injecting LLM-generated hard negatives.
 
-### Epoch sweep — Acc@1 plateau confirmation (run 2026-03-29, NVIDIA T4, Google Colab)
+### Epoch sweep — Acc@1 plateau confirmation (run 2026-04-11, RTX 4500, RunPod)
 
 Trained on `train_100pct` (6,977 match pairs, post-holdout) at 3, 5, 10, 15 epochs:
 
 | Epochs | Acc@1 | Acc@5 | MRR | Train time |
 |--------|-------|-------|-----|-----------|
-| 3 | 0.0439 | 0.5929 | 0.2759 | 693.6 s |
-| 5 | 0.0439 | 0.6223 | 0.2844 | 1,088.1 s |
-| 10 | 0.0464 | 0.6352 | 0.2881 | 2,097.5 s |
-| 15 | 0.0475 | 0.6285 | 0.2875 | 3,162.3 s |
+| 3 | 0.0459 | 0.5991 | 0.2800 | 88.4 s |
+| 5 | 0.0470 | 0.6218 | 0.2848 | 54.4 s |
+| 10 | 0.0470 | 0.6254 | 0.2872 | 103.3 s |
+| 15 | 0.0433 | 0.6326 | 0.2848 | 153.1 s |
 
-**Finding:** Acc@1 is essentially flat (0.044–0.048) while training time increases 4.6×.
+**Finding:** Acc@1 is essentially flat (0.043–0.047) while training time increases 1.7×.
 The Acc@1 ceiling is structural — caused by the absence of hard negatives during training,
 not insufficient training budget.  This directly motivates M3.
 

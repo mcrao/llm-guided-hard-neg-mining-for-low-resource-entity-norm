@@ -91,3 +91,4 @@ manuscript/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+RunPod with VS Code.md
