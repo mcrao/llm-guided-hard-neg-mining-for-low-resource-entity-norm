@@ -91,7 +91,7 @@ def _normalise_hf(df: pd.DataFrame) -> pd.DataFrame:
             df["pair_id"] = df.index.astype(str)
 
     if "is_hard_negative" not in df.columns:
-        df["is_hard_negative"] = df["label"].apply(lambda x: x == 0)
+        df["is_hard_negative"] = False
 
     for side in ("left", "right"):
         if f"cluster_id_{side}" not in df.columns:
