@@ -9,10 +9,11 @@ console = Console()
 
 def get_logger(name: str, level: int = logging.INFO) -> logging.Logger:
     """Return a Rich-formatted logger."""
-    logging.basicConfig(
-        level=level,
-        format="%(message)s",
-        datefmt="[%X]",
-        handlers=[RichHandler(console=console, rich_tracebacks=True, markup=True)],
-    )
+    if not logging.root.handlers:
+        logging.basicConfig(
+            level=level,
+            format="%(message)s",
+            datefmt="[%X]",
+            handlers=[RichHandler(console=console, rich_tracebacks=True, markup=True)],
+        )
     return logging.getLogger(name)
