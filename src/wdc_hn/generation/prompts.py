@@ -81,6 +81,17 @@ _FEW_SHOT_EXAMPLES: dict[str, list[tuple[str, list[str]]]] = {
              "Dell Inspiron 15 3520 Intel Core i7-1255U 16GB RAM 512GB SSD"],
         ),
     ],
+    "mixed": [
+        (
+            "Apple MacBook Pro 14-inch M2 Pro 16GB 512GB Space Gray",
+            [
+                "Apple MacBook Pro 14-inch M2 Pro 16GB 256GB Space Gray (component_swap)",
+                "MBP 14 M2 Pro 16/512 Space Gray (abbreviation)",
+                "Apple MacBook Pro 14-inch M2 Pro 16GB 512GB Space Grey (phonetic)",
+                "Apple MacBook Air 13-inch M2 8GB 512GB Space Gray (semantic_distractor)",
+            ],
+        ),
+    ],
 }
 
 # ── Type-specific instructions ────────────────────────────────────────────────
