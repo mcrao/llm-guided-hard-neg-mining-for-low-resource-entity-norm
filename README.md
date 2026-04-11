@@ -596,18 +596,18 @@ distant non-matches (random other products in the batch), never to near-duplicat
 like "iPhone 14 Pro 256GB" vs "iPhone 14 Pro Max 256GB".  M3 is designed to break this ceiling
 by injecting LLM-generated hard negatives.
 
-### Epoch sweep — Acc@1 plateau confirmation (run 2026-03-29, NVIDIA T4, Google Colab)
+### Epoch sweep — Acc@1 plateau confirmation (run 2026-04-11, RTX 4500, RunPod)
 
 Trained on `train_100pct` (6,977 match pairs, post-holdout) at 3, 5, 10, 15 epochs:
 
 | Epochs | Acc@1 | Acc@5 | MRR | Train time |
 |--------|-------|-------|-----|-----------|
-| 3 | 0.0439 | 0.5929 | 0.2759 | 693.6 s |
-| 5 | 0.0439 | 0.6223 | 0.2844 | 1,088.1 s |
-| 10 | 0.0464 | 0.6352 | 0.2881 | 2,097.5 s |
-| 15 | 0.0475 | 0.6285 | 0.2875 | 3,162.3 s |
+| 3 | 0.0459 | 0.5991 | 0.2800 | 88.4 s |
+| 5 | 0.0470 | 0.6218 | 0.2848 | 54.4 s |
+| 10 | 0.0470 | 0.6254 | 0.2872 | 103.3 s |
+| 15 | 0.0433 | 0.6326 | 0.2848 | 153.1 s |
 
-**Finding:** Acc@1 is essentially flat (0.044–0.048) while training time increases 4.6×.
+**Finding:** Acc@1 is essentially flat (0.043–0.047) while training time increases 1.7×.
 The Acc@1 ceiling is structural — caused by the absence of hard negatives during training,
 not insufficient training budget.  This directly motivates M3.
 
