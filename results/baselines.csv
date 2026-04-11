@@ -1,5 +1,5 @@
 method,train_split,eval_split,acc_at_1,acc_at_5,mrr,n_train_match_pairs,n_eval_queries,training_time_s,eval_time_s,timestamp
-bm25_tfidf,N/A,val,0.0346,0.3870,0.1988,N/A,1938,0.0,1.76,2026-03-14T15:15:49Z
-bi_encoder_in_batch,train_10pct,val,0.0454,0.5325,0.2554,775,1938,115.5,25.06,2026-03-14T18:20:42Z
-bi_encoder_in_batch,train_25pct,val,0.0439,0.5552,0.2656,1938,1938,182.9,25.91,2026-03-14T18:24:14Z
-bi_encoder_in_batch,train_100pct,val,0.0454,0.6022,0.2819,7752,1938,720.7,25.12,2026-03-14T18:36:43Z
+bm25_tfidf,N/A,val,0.0351,0.3870,0.1990,N/A,1938,0.0,1.78,2026-04-11T08:08:54Z
+bi_encoder_in_batch,train_10pct,val,0.0433,0.5108,0.2486,698,1938,103.7,2.71,2026-04-11T08:10:41Z
+bi_encoder_in_batch,train_25pct,val,0.0454,0.5526,0.2636,1744,1938,11.2,2.71,2026-04-11T08:10:55Z
+bi_encoder_in_batch,train_100pct,val,0.0459,0.5991,0.2800,6977,1938,33.7,2.71,2026-04-11T08:11:31Z

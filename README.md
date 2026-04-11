@@ -568,11 +568,11 @@ set gold-standard is available.
 
 ## 9. Current Results
 
-### BM25 / TF-IDF baseline (run 2026-03-14)
+### BM25 / TF-IDF baseline (run 2026-04-11, RTX 4500, RunPod)
 
 | Method | Train split | Eval split | Acc@1 | Acc@5 | MRR | Eval queries |
 |--------|------------|------------|-------|-------|-----|-------------|
-| `bm25_tfidf` | N/A | val | 0.0346 | 0.3870 | 0.1988 | 1,938 |
+| `bm25_tfidf` | N/A | val | 0.0351 | 0.3870 | 0.1990 | 1,938 |
 
 **Interpretation:** TF-IDF achieves 3.5% Acc@1 — retrieves the correct product as the
 top-1 result for only 1 in 29 queries.  MRR of 0.20 means the correct product is found
@@ -580,16 +580,13 @@ at an average rank of ~5.  This is the expected weak lower bound for a keyword-o
 method against a 3,479-item corpus — there are many products with nearly identical titles
 that differ only by model number or storage configuration.
 
-### Bi-encoder baseline (run 2026-03-14, NVIDIA T4, Google Colab)
+### Bi-encoder baseline (run 2026-04-11, RTX 4500, RunPod)
 
-> **Note:** These baselines were run before the test holdout was carved.  Train pair counts
-> reflect the original (pre-holdout) splits; updated split sizes are in the table above.
-
-| Method | Train split | Eval split | Acc@1 | Acc@5 | MRR | Train pairs (orig) | Train time |
-|--------|------------|------------|-------|-------|-----|-------------------|-----------|
-| `bi_encoder_in_batch` | train_10pct | val | 0.0454 | 0.5325 | 0.2554 | 775 | 115.5 s |
-| `bi_encoder_in_batch` | train_25pct | val | 0.0439 | 0.5552 | 0.2656 | 1,938 | 182.9 s |
-| `bi_encoder_in_batch` | train_100pct | val | 0.0454 | 0.6022 | 0.2819 | 7,752 | 720.7 s |
+| Method | Train split | Eval split | Acc@1 | Acc@5 | MRR | Train pairs | Train time |
+|--------|------------|------------|-------|-------|-----|------------|-----------|
+| `bi_encoder_in_batch` | train_10pct | val | 0.0433 | 0.5108 | 0.2486 | 698 | 115.5 s |
+| `bi_encoder_in_batch` | train_25pct | val | 0.0454 | 0.5526 | 0.2636 | 1,744 | 182.9 s |
+| `bi_encoder_in_batch` | train_100pct | val | 0.0459 | 0.5991 | 0.2800 | 6,977 | 720.7 s |
 
 **Key observation:** Acc@1 is flat at ~4.5% across all three data splits.  Acc@5 and MRR
 do scale with data size, but the top-1 retrieval hit-rate does not improve — even doubling
