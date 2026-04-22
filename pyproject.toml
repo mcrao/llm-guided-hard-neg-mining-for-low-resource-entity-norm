@@ -28,6 +28,7 @@ dependencies = [
     "click>=8.1.0",
     # Evaluation
     "evaluate>=0.4.0",
+    "openai>=2.32.0",
 ]
 
 [project.optional-dependencies]
