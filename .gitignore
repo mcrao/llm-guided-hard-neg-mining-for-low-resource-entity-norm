@@ -39,8 +39,9 @@ runs/
 lightning_logs/
 *.wandb
 
-# ── LLM-generated negative cache (M3 — large, reproducible from generate_negatives.py)
+# ── LLM-generated negative cache and training-ready parquets (M3 — regenerate with generate_negatives.py)
 data/negatives_cache/
+data/negatives/
 results/ablations/raw/
 
 # ── Context and mentor-shared docs (not for public repo) ─────────────────────

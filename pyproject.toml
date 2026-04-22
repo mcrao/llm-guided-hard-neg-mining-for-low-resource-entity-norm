@@ -29,6 +29,7 @@ dependencies = [
     # Evaluation
     "evaluate>=0.4.0",
     "openai>=2.32.0",
+    "matplotlib>=3.10.8",
 ]
 
 [project.optional-dependencies]
