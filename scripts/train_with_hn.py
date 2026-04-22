@@ -161,7 +161,8 @@ def main(
         log.info(f"Hard negatives loaded: {n_hard_neg:,} triplets (ratio {ratio}:1)")
 
     # ── Model path ─────────────────────────────────────────────────────────────
-    run_tag  = f"{split}__{neg_type}__{strategy}__{safe_model}__r{ratio}"
+    safe_backbone = backbone.replace("/", "_")
+    run_tag  = f"{split}__{neg_type}__{strategy}__{safe_model}__{safe_backbone}__r{ratio}"
     model_dir = MODELS_DIR / f"bi_encoder_hn_{run_tag}"
 
     # ── Train ──────────────────────────────────────────────────────────────────
