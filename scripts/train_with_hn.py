@@ -156,7 +156,7 @@ def main(
                      "negative_text": "negative_text"}
         )
         # negatives_raw is already a triplets DataFrame — just re-sample for ratio
-        hard_neg_df = build_augmented_df(train_df, _triplets_to_negatives_df(negatives_raw), ratio=ratio)
+        hard_neg_df = build_augmented_df(train_df, _triplets_to_negatives_df(negatives_raw), ratio=ratio, seed=seed)
         n_hard_neg = len(hard_neg_df)
         log.info(f"Hard negatives loaded: {n_hard_neg:,} triplets (ratio {ratio}:1)")
 

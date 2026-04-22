@@ -431,6 +431,7 @@ def build_augmented_df(
     original_df: pd.DataFrame,
     negatives_df: pd.DataFrame,
     ratio: int = 1,
+    seed: int = 42,
 ) -> pd.DataFrame:
     """
     Sample hard negatives for use in triplet training.
@@ -447,6 +448,7 @@ def build_augmented_df(
         negatives_df:  Output of generate_for_split().
         ratio:         Max number of hard negatives to sample per match pair.
                        1 → 1:1 ratio, 4 → 4:1 ratio.
+        seed:          Random seed for negative sampling (for reproducibility).
 
     Returns:
         DataFrame with columns: pair_id, anchor_text, positive_text, negative_text
@@ -471,7 +473,7 @@ def build_augmented_df(
             description=row.get("description_right"),
         )
         # Sample up to `ratio` negatives per pair
-        sampled = neg_rows.sample(n=min(ratio, len(neg_rows)), random_state=42)
+        sampled = neg_rows.sample(n=min(ratio, len(neg_rows)), random_state=seed)
         for _, neg_row in sampled.iterrows():
             rows.append({
                 "pair_id":        pair_id,
