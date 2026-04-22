@@ -103,6 +103,7 @@ class BiEncoderBaseline:
     def train(
         self,
         train_df: pd.DataFrame,
+        hard_neg_df: Optional[pd.DataFrame] = None,
         output_dir: Optional[Path] = None,
         epochs: int = DEFAULT_EPOCHS,
         batch_size: int = DEFAULT_BATCH_SIZE,
@@ -113,12 +114,17 @@ class BiEncoderBaseline:
         Fine-tune the bi-encoder on positive pairs using MNRL.
 
         Args:
-            train_df   : Labelled training DataFrame (uses label==1 rows).
-            output_dir : If given, save the trained model here.
-            epochs     : Number of training epochs.
-            batch_size : Per-device training batch size.
+            train_df    : Labelled training DataFrame (uses label==1 rows).
+            hard_neg_df : Optional DataFrame from generate_negatives.build_augmented_df()
+                          with columns [pair_id, anchor_text, positive_text, negative_text].
+                          When provided, trains with explicit triplets so the model sees
+                          LLM-generated hard negatives alongside the in-batch negatives.
+                          When None, falls back to the original pairs-only training.
+            output_dir  : If given, save the trained model here.
+            epochs      : Number of training epochs.
+            batch_size  : Per-device training batch size.
             warmup_ratio: Fraction of steps used for linear warmup.
-            seed       : Random seed for reproducibility.
+            seed        : Random seed for reproducibility.
 
         Returns:
             self (for chaining).
@@ -129,46 +135,65 @@ class BiEncoderBaseline:
         from sentence_transformers.training_args import SentenceTransformerTrainingArguments
         from sentence_transformers.trainer import SentenceTransformerTrainer
 
-        # ── Build training pairs ───────────────────────────────────────────
+        # ── Build training pairs / triplets ───────────────────────────────
         match_df = train_df[train_df["label"] == 1].reset_index(drop=True)
         n_pairs  = len(match_df)
 
         if n_pairs == 0:
             raise ValueError("train_df contains no positive pairs (label==1).")
 
+        use_triplets = hard_neg_df is not None and not hard_neg_df.empty
+
         log.info(
-            f"Building training pairs from {n_pairs:,} match rows "
+            f"Building training {'triplets' if use_triplets else 'pairs'} "
+            f"from {n_pairs:,} match rows "
             f"(epochs={epochs}, batch_size={batch_size}) …"
         )
 
-        anchors   = [
-            build_text(
-                title=row.get("title_left"),
-                brand=row.get("brand_left"),
-                description=row.get("description_left"),
+        if use_triplets:
+            # hard_neg_df already has anchor_text, positive_text, negative_text
+            # (built by build_augmented_df). Use directly.
+            anchors   = hard_neg_df["anchor_text"].tolist()
+            positives = hard_neg_df["positive_text"].tolist()
+            negatives = hard_neg_df["negative_text"].tolist()
+            log.info(
+                f"Hard negatives: {len(hard_neg_df):,} triplets "
+                f"({len(hard_neg_df) // max(n_pairs, 1)}:1 ratio per match pair)"
             )
-            for _, row in match_df.iterrows()
-        ]
-        positives = [
-            build_text(
-                title=row.get("title_right"),
-                brand=row.get("brand_right"),
-                description=row.get("description_right"),
-            )
-            for _, row in match_df.iterrows()
-        ]
-
-        train_dataset = HFDataset.from_dict({
-            "anchor":   anchors,
-            "positive": positives,
-        })
+            train_dataset = HFDataset.from_dict({
+                "anchor":   anchors,
+                "positive": positives,
+                "negative": negatives,
+            })
+        else:
+            anchors   = [
+                build_text(
+                    title=row.get("title_left"),
+                    brand=row.get("brand_left"),
+                    description=row.get("description_left"),
+                )
+                for _, row in match_df.iterrows()
+            ]
+            positives = [
+                build_text(
+                    title=row.get("title_right"),
+                    brand=row.get("brand_right"),
+                    description=row.get("description_right"),
+                )
+                for _, row in match_df.iterrows()
+            ]
+            train_dataset = HFDataset.from_dict({
+                "anchor":   anchors,
+                "positive": positives,
+            })
 
         # ── Initialise model ───────────────────────────────────────────────
         self._init_model()
         loss = MultipleNegativesRankingLoss(self._model)
 
         # ── Training arguments ─────────────────────────────────────────────
-        total_steps  = (n_pairs // batch_size) * epochs
+        n_train      = len(hard_neg_df) if use_triplets else n_pairs
+        total_steps  = (n_train // batch_size) * epochs
         warmup_steps = max(1, int(total_steps * warmup_ratio))
 
         # fp16 / bf16 — use bf16 on CUDA if available; skip on MPS/CPU
