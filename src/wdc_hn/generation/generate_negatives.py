@@ -44,9 +44,14 @@ def _cache_path(cache_dir: Path, model_id: str, neg_type: str, strategy: str) ->
     return Path(cache_dir) / f"{safe_model}__{neg_type}__{strategy}.jsonl"
 
 
-def _make_cache_key(product_text: str) -> str:
-    """SHA-256 hash of normalised product text — the cache lookup key."""
-    return hashlib.sha256(product_text.strip().lower().encode()).hexdigest()
+def _make_cache_key(product_text: str, n_negatives: int) -> str:
+    """SHA-256 hash of (normalised product text, n_negatives) — the cache lookup key.
+
+    n_negatives is included so that a future run requesting a different count
+    does not silently return stale cached results from a prior run.
+    """
+    payload = f"{product_text.strip().lower()}||n={n_negatives}"
+    return hashlib.sha256(payload.encode()).hexdigest()
 
 
 def load_cache(
@@ -270,7 +275,7 @@ def generate_for_split(
             brand=row.get("brand_left"),
             description=row.get("description_left"),
         )
-        cache_key = _make_cache_key(product_text)
+        cache_key = _make_cache_key(product_text, n_per_product)
 
         # ── Cache hit ─────────────────────────────────────────────────────
         if cache_key in cache and not force:
