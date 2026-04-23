@@ -27,17 +27,23 @@ LLM-to-in-batch ratio achieves the best overall gains, with Acc@5 exceeding the 
 
 ### LLM-HN ablation — train_10pct, GPT-4o-mini generator
 
-| Ablation | Config | Acc@1 | Acc@5 | MRR |
-|----------|--------|-------|-------|-----|
-| A4 — Negative type | phonetic + CoT | 0.0377 | **0.5212** | 0.2478 |
-| A4 — Negative type | component_swap + zero-shot | 0.0423 | 0.4962 | 0.2426 |
-| A4 — Negative type | component_swap + few-shot | 0.0423 | 0.5191 | 0.2464 |
-| A4 — Negative type | **component_swap + CoT** | **0.0444** | 0.5181 | **0.2596** |
-| A4 — Negative type | abbreviation + CoT | 0.0423 | 0.4922 | 0.2376 |
-| A4 — Negative type | semantic_distractor + CoT | 0.0418 | 0.5171 | 0.2528 |
-| A1 — Backbone | msmarco-distilbert + CoT | 0.0423 | 0.5161 | 0.2539 |
-| A5 — Ratio | 4:1 LLM-to-in-batch | **0.0444** | **0.5542** | **0.2596** |
-| A5 — Ratio | 1:1 ratio | 0.0418 | 0.5304 | 0.2558 |
+All rows use distilbert-base-uncased and ratio=1:1 unless noted. Reference: in-batch only → Acc@1=0.0433, Acc@5=0.5108, MRR=0.2486.
+
+| Ablation | Config | Acc@1 | Acc@5 | MRR | n_hn |
+|----------|--------|-------|-------|-----|------|
+| A3 — Strategy | component_swap + zero-shot | 0.0428 | 0.5062 | 0.2461 | 693 |
+| A3 — Strategy | component_swap + few-shot | 0.0402 | 0.5191 | 0.2464 | 694 |
+| A3 — Strategy | **component_swap + CoT** | **0.0444** | 0.5175 | **0.2489** | 697 |
+| A4 — Type | **component_swap** + CoT | **0.0444** | 0.5175 | **0.2489** | 697 |
+| A4 — Type | phonetic + CoT | 0.0433 | **0.5212** | 0.2477 | 698 |
+| A4 — Type | semantic_distractor + CoT | 0.0439 | 0.5098 | 0.2488 | 697 |
+| A4 — Type | abbreviation + CoT | 0.0428 | 0.5088 | 0.2455 | 698 |
+| A1 — Backbone | distilbert-base-uncased | **0.0444** | 0.5175 | 0.2489 | 697 |
+| A1 — Backbone | msmarco-distilbert-base-v4 | 0.0428 | **0.5335** | **0.2521** | 698 |
+| A1 — Backbone | bert-base-uncased | 0.0423 | 0.5139 | 0.2493 | 698 |
+| A5 — Ratio | 1:1 | 0.0444 | 0.5175 | 0.2489 | 697 |
+| A5 — Ratio | **4:1** | **0.0444** | **0.5542** | **0.2596** | 2,792 |
+| A5 — Ratio | 1:0 (LLM only) | 0.0433 | 0.5108 | 0.2486 | 0 |
 
 **Best configuration:** component_swap + CoT + 4:1 ratio → **+2.5% Acc@1, +8.5% Acc@5, +4.4% MRR** over the train_10pct baseline.
 

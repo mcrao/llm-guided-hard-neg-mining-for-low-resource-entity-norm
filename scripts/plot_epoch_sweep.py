@@ -40,9 +40,10 @@ def main() -> None:
     acc5    = df["acc_at_5"].tolist()
     mrr     = df["mrr"].tolist()
 
-    # Baseline values (in-batch, no hard negatives)
-    base_acc1 = 0.0433
-    base_acc5 = 0.5108
+    # 3-epoch reference values (train_100pct, in-batch — the first data point)
+    # These match the dashed reference lines in the paper's pgfplots figure.
+    base_acc1 = 0.0459
+    base_acc5 = 0.5991
 
     # ── Figure setup ──────────────────────────────────────────────────────────
     fig, ax1 = plt.subplots(figsize=(5.5, 3.2))
