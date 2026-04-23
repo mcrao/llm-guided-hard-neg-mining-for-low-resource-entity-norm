@@ -55,7 +55,7 @@ def main() -> None:
     ax1.plot(epochs, acc1, color=color_acc1, marker="o", linewidth=2,
              markersize=6, label="Acc@1 (left axis)", zorder=3)
     ax1.axhline(base_acc1, color=color_acc1, linestyle="--", linewidth=1,
-                alpha=0.6, label=f"Acc@1 baseline ({base_acc1:.4f})")
+                alpha=0.6, label=f"Acc@1 @ 3 ep. ({base_acc1:.4f})")
     ax1.set_xlabel("Training epochs", fontsize=11)
     ax1.set_ylabel("Acc@1", color=color_acc1, fontsize=11)
     ax1.tick_params(axis="y", labelcolor=color_acc1)
@@ -68,7 +68,7 @@ def main() -> None:
     ax2.plot(epochs, acc5, color=color_acc5, marker="s", linewidth=2,
              markersize=6, label="Acc@5 (right axis)", zorder=3)
     ax2.axhline(base_acc5, color=color_acc5, linestyle="--", linewidth=1,
-                alpha=0.6, label=f"Acc@5 baseline ({base_acc5:.4f})")
+                alpha=0.6, label=f"Acc@5 @ 3 ep. ({base_acc5:.4f})")
     ax2.set_ylabel("Acc@5", color=color_acc5, fontsize=11)
     ax2.tick_params(axis="y", labelcolor=color_acc5)
     ax2.set_ylim(0.50, 0.68)

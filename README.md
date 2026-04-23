@@ -32,7 +32,7 @@ All rows use distilbert-base-uncased and ratio=1:1 unless noted. Reference: in-b
 | Ablation | Config | Acc@1 | Acc@5 | MRR | n_hn |
 |----------|--------|-------|-------|-----|------|
 | A3 — Strategy | component_swap + zero-shot | 0.0428 | 0.5062 | 0.2461 | 693 |
-| A3 — Strategy | component_swap + few-shot | 0.0402 | 0.5191 | 0.2464 | 694 |
+| A3 — Strategy | component_swap + few-shot | 0.0402 | **0.5191** | 0.2464 | 694 |
 | A3 — Strategy | **component_swap + CoT** | **0.0444** | 0.5175 | **0.2489** | 697 |
 | A4 — Type | **component_swap** + CoT | **0.0444** | 0.5175 | **0.2489** | 697 |
 | A4 — Type | phonetic + CoT | 0.0433 | **0.5212** | 0.2477 | 698 |
@@ -43,7 +43,7 @@ All rows use distilbert-base-uncased and ratio=1:1 unless noted. Reference: in-b
 | A1 — Backbone | bert-base-uncased | 0.0423 | 0.5139 | 0.2493 | 698 |
 | A5 — Ratio | 1:1 | 0.0444 | 0.5175 | 0.2489 | 697 |
 | A5 — Ratio | **4:1** | **0.0444** | **0.5542** | **0.2596** | 2,792 |
-| A5 — Ratio | 1:0 (LLM only) | 0.0433 | 0.5108 | 0.2486 | 0 |
+| A5 — Ratio | in-batch only (no LLM neg.) | 0.0433 | 0.5108 | 0.2486 | 0 |
 
 **Best configuration:** component_swap + CoT + 4:1 ratio → **+2.5% Acc@1, +8.5% Acc@5, +4.4% MRR** over the train_10pct baseline.
 
