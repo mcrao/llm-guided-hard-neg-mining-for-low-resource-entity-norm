@@ -82,6 +82,7 @@ def create_low_resource_splits(
     seed: int = DEFAULT_SEED,
     fractions: Optional[Dict[str, float]] = None,
     force: bool = False,
+    category: str = "computers",
 ) -> Dict[str, Path]:
     """
     Create and save low-resource training splits.
@@ -111,12 +112,13 @@ def create_low_resource_splits(
     _check_label_balance(train_df, "full training set")
 
     # ── Derive test holdout when gold-standard file unavailable ───────────
-    # Check the OUTPUT split (splits_dir/computers_test.parquet), not the raw
+    # Check the OUTPUT split (splits_dir/{category}_test.parquet), not the raw
     # input (test_path). The raw file is permanently empty when the WDC gold-
     # standard is unavailable; checking it would trigger re-carving on every
     # run, defeating the training-split cache and risking a different partition
     # if the seed ever changes.
-    test_out = splits_dir / "computers_test.parquet"
+    c = category.lower()
+    test_out = splits_dir / f"{c}_test.parquet"
     raw_test_empty    = len(test_df) == 0
     output_test_ready = test_out.exists() and len(pd.read_parquet(test_out)) > 0
 
@@ -173,7 +175,7 @@ def create_low_resource_splits(
 
     # ── Training splits ────────────────────────────────────
     for name, frac in fractions.items():
-        out_path = splits_dir / f"computers_train_{name}.parquet"
+        out_path = splits_dir / f"{c}_train_{name}.parquet"
 
         if out_path.exists() and not force and not test_was_empty:
             log.info(f"  [{name}] Already exists — skipping (delete to regenerate).")
@@ -194,7 +196,7 @@ def create_low_resource_splits(
         )
 
     # ── Val / test (always 100%) ───────────────────────────
-    val_out = splits_dir / "computers_val.parquet"
+    val_out = splits_dir / f"{c}_val.parquet"
     # test_out declared earlier (needed for the holdout-exists check above)
 
     if not val_out.exists() or force:
@@ -277,6 +279,7 @@ def _print_summary_table(stats: Dict[str, Dict]) -> None:
 def load_split(
     splits_dir: Path,
     split_name: str,
+    category: str = "computers",
 ) -> pd.DataFrame:
     """
     Load a named split as a DataFrame.
@@ -285,29 +288,25 @@ def load_split(
         splits_dir:  Directory containing split Parquet files.
         split_name:  One of: 'train_10pct', 'train_25pct', 'train_100pct',
                      'val', 'test'.
+        category:    Product category prefix ('computers', 'cameras', etc.).
 
     Returns:
         Loaded DataFrame.
     """
     splits_dir = Path(splits_dir)
-    path_map = {
-        "train_10pct":  splits_dir / "computers_train_10pct.parquet",
-        "train_25pct":  splits_dir / "computers_train_25pct.parquet",
-        "train_100pct": splits_dir / "computers_train_100pct.parquet",
-        "val":          splits_dir / "computers_val.parquet",
-        "test":         splits_dir / "computers_test.parquet",
-    }
-    if split_name not in path_map:
+    c = category.lower()
+    valid_splits = ["train_10pct", "train_25pct", "train_100pct", "val", "test"]
+    if split_name not in valid_splits:
         raise ValueError(
             f"Unknown split '{split_name}'. "
-            f"Choose from: {list(path_map.keys())}"
+            f"Choose from: {valid_splits}"
         )
-    path = path_map[split_name]
+    path = splits_dir / f"{c}_{split_name}.parquet"
     if not path.exists():
         raise FileNotFoundError(
             f"Split file not found: {path}\n"
-            f"Run prepare_data.py first to generate splits."
+            f"Run prepare_data.py --category {c} first to generate splits."
         )
     df = pd.read_parquet(path)
-    log.info(f"Loaded split [bold]{split_name}[/bold]: {len(df):,} pairs from {path.name}")
+    log.info(f"Loaded split [bold]{split_name}[/bold] ({c}): {len(df):,} pairs from {path.name}")
     return df

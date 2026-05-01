@@ -69,7 +69,8 @@ MODELS_DIR  = PROJECT_ROOT / "models"
 
 RESULTS_CSV = RESULTS_DIR / "m3_results.csv"
 RESULTS_COLS = [
-    "split", "neg_type", "strategy", "llm_model", "backbone", "ratio",
+    "category", "split", "neg_type", "strategy", "llm_model", "backbone", "ratio",
+    "seed", "eval_split",
     "acc_at_1", "acc_at_5", "mrr", "n_train_match", "n_hard_neg",
     "training_time_s", "eval_time_s", "timestamp",
 ]
@@ -80,8 +81,27 @@ VALID_STRATEGIES = ["zero_shot", "few_shot", "chain_of_thought"]
 
 
 def _append_result(row: dict) -> None:
-    """Append one result row to m3_results.csv (creates file with header if needed)."""
+    """Append one result row to m3_results.csv (creates file with header if needed).
+
+    Auto-migrates old CSVs missing seed/eval_split columns (backfills seed=42, eval_split=val).
+    """
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    if RESULTS_CSV.exists():
+        df = pd.read_csv(RESULTS_CSV)
+        needs_rewrite = False
+        if "seed" not in df.columns:
+            df["seed"] = 42
+            needs_rewrite = True
+        if "eval_split" not in df.columns:
+            df["eval_split"] = "val"
+            needs_rewrite = True
+        if "category" not in df.columns:
+            df["category"] = "computers"
+            needs_rewrite = True
+        if needs_rewrite:
+            df = df.reindex(columns=RESULTS_COLS)
+            df.to_csv(RESULTS_CSV, index=False)
+
     write_header = not RESULTS_CSV.exists()
     with RESULTS_CSV.open("a", newline="") as fh:
         writer = csv.DictWriter(fh, fieldnames=RESULTS_COLS)
@@ -93,6 +113,9 @@ def _append_result(row: dict) -> None:
 @app.command()
 def main(
     split: str = typer.Option("train_10pct", help="Training split name."),
+    category: str = typer.Option(
+        "computers", help="WDC product category: computers | cameras | watches | shoes"
+    ),
     neg_type: str = typer.Option(
         "component_swap", "--type", help="Hard negative type."
     ),
@@ -107,26 +130,32 @@ def main(
     epochs: int = typer.Option(3, help="Training epochs."),
     batch_size: int = typer.Option(32, help="Training batch size."),
     seed: int = typer.Option(42, help="Random seed."),
+    eval_split: str = typer.Option(
+        "val", "--eval-split", help="Split to evaluate on: 'val' or 'test'."
+    ),
     no_cache: bool = typer.Option(
         False, "--no-cache", help="Re-train even if a saved model exists."
     ),
 ) -> None:
+    c = category.lower()
+
     # ── Resolve negatives parquet path ─────────────────────────────────────────
     safe_model = model.replace("/", "_")
-    neg_path = NEG_DIR / f"{split}__{neg_type}__{strategy}__{safe_model}.parquet"
+    neg_path = NEG_DIR / f"{c}__{split}__{neg_type}__{strategy}__{safe_model}.parquet"
 
     if ratio > 0 and not neg_path.exists():
         log.error(
             f"Negatives file not found: {neg_path}\n"
             f"Run generate_negatives.py first:\n"
             f"  uv run python scripts/generate_negatives.py "
-            f"--split {split} --type {neg_type} --strategy {strategy} --model {model}"
+            f"--category {c} --split {split} --type {neg_type} --strategy {strategy} --model {model}"
         )
         raise typer.Exit(1)
 
     # ── Header ─────────────────────────────────────────────────────────────────
     console.print(Panel(
         f"[bold]Train with Hard Negatives[/bold]\n"
+        f"Category: [cyan]{c}[/cyan] | "
         f"Split: [cyan]{split}[/cyan] | "
         f"Type: [cyan]{neg_type}[/cyan] | "
         f"Strategy: [cyan]{strategy}[/cyan] | "
@@ -138,8 +167,8 @@ def main(
 
     # ── Load data ──────────────────────────────────────────────────────────────
     log.info(f"Loading split [{split}] …")
-    train_df = load_split(SPLITS_DIR, split)
-    val_df   = load_split(SPLITS_DIR, "val")
+    train_df = load_split(SPLITS_DIR, split, category=c)
+    eval_df  = load_split(SPLITS_DIR, eval_split, category=c)
     n_match  = (train_df["label"] == 1).sum()
 
     hard_neg_df: Optional[pd.DataFrame] = None
@@ -162,7 +191,7 @@ def main(
 
     # ── Model path ─────────────────────────────────────────────────────────────
     safe_backbone = backbone.replace("/", "_")
-    run_tag  = f"{split}__{neg_type}__{strategy}__{safe_model}__{safe_backbone}__r{ratio}"
+    run_tag  = f"{c}__{split}__{neg_type}__{strategy}__{safe_model}__{safe_backbone}__r{ratio}"
     model_dir = MODELS_DIR / f"bi_encoder_hn_{run_tag}"
 
     # ── Train ──────────────────────────────────────────────────────────────────
@@ -185,8 +214,8 @@ def main(
         train_time = round(time.time() - t0, 1)
 
     # ── Evaluate ───────────────────────────────────────────────────────────────
-    log.info("Evaluating on val set …")
-    metrics = baseline.evaluate(val_df)
+    log.info(f"Evaluating on {eval_split} set …")
+    metrics = baseline.evaluate(eval_df)
 
     # ── Print results ──────────────────────────────────────────────────────────
     table = Table(title="M3 Results", show_header=True)
@@ -207,12 +236,15 @@ def main(
     # ── Append to CSV ──────────────────────────────────────────────────────────
     ts = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     _append_result({
+        "category":        c,
         "split":           split,
         "neg_type":        neg_type,
         "strategy":        strategy,
         "llm_model":       model,
         "backbone":        backbone,
         "ratio":           ratio,
+        "seed":            seed,
+        "eval_split":      eval_split,
         "acc_at_1":        round(metrics["acc_at_1"], 4),
         "acc_at_5":        round(metrics["acc_at_5"], 4),
         "mrr":             round(metrics["mrr"], 4),

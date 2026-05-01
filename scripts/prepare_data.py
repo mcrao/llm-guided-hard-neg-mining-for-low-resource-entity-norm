@@ -37,9 +37,9 @@ from rich.table import Table
 from wdc_hn.data import (
     ProductPairDataset,
     create_low_resource_splits,
-    download_wdc_computers,
     load_split,
 )
+from wdc_hn.data.download import download_wdc_category
 from wdc_hn.utils import console, get_logger
 
 log = get_logger(__name__)
@@ -50,6 +50,10 @@ app = typer.Typer(add_completion=False, pretty_exceptions_enable=False)
 
 @app.command()
 def main(
+    category: str = typer.Option(
+        "computers",
+        help="WDC LSPC product category: computers | cameras | watches | shoes",
+    ),
     train_size: str = typer.Option(
         "xlarge",
         help="WDC training set size: small | medium | large | xlarge",
@@ -78,11 +82,13 @@ def main(
     raw_dir    = data_dir / "raw"
     splits_dir = data_dir / "splits"
 
-    console.rule("[bold cyan]Milestone 2 — Data Preparation Pipeline[/bold cyan]")
+    c = category.lower()
+    console.rule("[bold cyan]Data Preparation Pipeline[/bold cyan]")
     console.print(
         Panel(
             f"[bold]Project root:[/bold] {PROJECT_ROOT}\n"
-            f"[bold]Train size:[/bold]   computers_{train_size}\n"
+            f"[bold]Category:[/bold]     {c}\n"
+            f"[bold]Train size:[/bold]   {c}_{train_size}\n"
             f"[bold]Seed:[/bold]         {seed}\n"
             f"[bold]Force:[/bold]        {force}",
             title="Configuration",
@@ -92,18 +98,19 @@ def main(
 
     # ── Step 1: Download ───────────────────────────────────
     if not smoke_test:
-        console.rule("[bold]Step 1 / 3 — Download WDC LSPC Computers[/bold]")
-        train_path, val_path, test_path = download_wdc_computers(
+        console.rule(f"[bold]Step 1 / 3 — Download WDC LSPC {c.title()}[/bold]")
+        train_path, val_path, test_path = download_wdc_category(
             raw_dir=raw_dir,
+            category=c,
             train_size=train_size,
             force_redownload=force,
             prefer_huggingface=not no_hf,
         )
     else:
         log.info("[yellow]Smoke-test mode — skipping download step.[/yellow]")
-        train_path = raw_dir / f"computers_train_{train_size}.parquet"
-        val_path   = raw_dir / "computers_val.parquet"
-        test_path  = raw_dir / "computers_test.parquet"
+        train_path = raw_dir / f"{c}_train_{train_size}.parquet"
+        val_path   = raw_dir / f"{c}_val.parquet"
+        test_path  = raw_dir / f"{c}_test.parquet"
         for p in [train_path, val_path, test_path]:
             if not p.exists():
                 log.error(f"File not found for smoke-test: {p}")
@@ -118,6 +125,7 @@ def main(
         splits_dir=splits_dir,
         seed=seed,
         force=force,
+        category=c,
     )
 
     # ── Step 3: Dataset smoke test ─────────────────────────

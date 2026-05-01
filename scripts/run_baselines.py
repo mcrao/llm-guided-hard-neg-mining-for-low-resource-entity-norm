@@ -182,7 +182,7 @@ def run_bi_encoder_split(
     batch_size: int,
 ) -> Dict:
     """Train + evaluate the bi-encoder on one training split."""
-    model_dir = MODELS_DIR / f"bi_encoder_in_batch_{train_split.replace('train_', '')}"
+    model_dir = MODELS_DIR / f"bi_encoder_in_batch_{train_split}"
 
     baseline = BiEncoderBaseline()
 
@@ -237,6 +237,10 @@ def main(
         help="Comma-separated training splits to use for bi-encoder. "
              "Choices: 10pct, 25pct, 100pct. Default: all three.",
     ),
+    category: str = typer.Option(
+        "computers",
+        help="WDC product category: computers | cameras | watches | shoes",
+    ),
     skip_bm25: bool = typer.Option(
         False,
         "--skip-bm25",
@@ -264,9 +268,11 @@ def main(
     """
     Run all Milestone 2 baselines and write results to results/baselines.csv.
     """
+    c = category.lower()
     console.rule("[bold cyan]Milestone 2 — Baseline Evaluation[/bold cyan]")
     console.print(
         Panel(
+            f"[bold]Category:[/bold]     {c}\n"
             f"[bold]Splits dir:[/bold]   {SPLITS_DIR}\n"
             f"[bold]Results dir:[/bold]  {RESULTS_DIR}\n"
             f"[bold]Models dir:[/bold]   {MODELS_DIR}\n"
@@ -293,7 +299,7 @@ def main(
 
     # ── Load val set (always needed) ──────────────────────────────────────────
     log.info("Loading val set …")
-    val_df = load_split(SPLITS_DIR, "val")
+    val_df = load_split(SPLITS_DIR, "val", category=c)
     log.info(
         f"Val set: {len(val_df):,} pairs | "
         f"matches={_n_match_pairs(val_df):,}"
@@ -313,13 +319,13 @@ def main(
                 f"[bold]Baseline 2: Bi-encoder | split=[cyan]{split_name}[/cyan][/bold]"
             )
             log.info(f"Loading training split [{split_name}] …")
-            train_df = load_split(SPLITS_DIR, split_name)
+            train_df = load_split(SPLITS_DIR, split_name, category=c)
             log.info(
                 f"  {len(train_df):,} pairs | "
                 f"{_n_match_pairs(train_df):,} match pairs"
             )
             row = run_bi_encoder_split(
-                train_split=split_name,
+                train_split=f"{c}_{split_name}",
                 train_df=train_df,
                 val_df=val_df,
                 use_cache=not no_cache,
