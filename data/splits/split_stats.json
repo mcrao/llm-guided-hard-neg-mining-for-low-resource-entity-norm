@@ -1,42 +1,42 @@
 {
   "10pct": {
     "name": "train_10pct",
-    "n_pairs": 4930,
-    "n_match": 698,
-    "n_non_match": 4232,
+    "n_pairs": 4487,
+    "n_match": 794,
+    "n_non_match": 3693,
     "n_hard_neg": 0,
-    "match_fraction": 0.1416
+    "match_fraction": 0.177
   },
   "25pct": {
     "name": "train_25pct",
-    "n_pairs": 12323,
-    "n_match": 1744,
-    "n_non_match": 10579,
+    "n_pairs": 11216,
+    "n_match": 1983,
+    "n_non_match": 9233,
     "n_hard_neg": 0,
-    "match_fraction": 0.1415
+    "match_fraction": 0.1768
   },
   "100pct": {
     "name": "train_100pct",
-    "n_pairs": 49291,
-    "n_match": 6977,
-    "n_non_match": 42314,
+    "n_pairs": 44864,
+    "n_match": 7934,
+    "n_non_match": 36930,
     "n_hard_neg": 0,
-    "match_fraction": 0.1415
+    "match_fraction": 0.1768
   },
   "val": {
     "name": "val",
-    "n_pairs": 13693,
-    "n_match": 1938,
-    "n_non_match": 11755,
+    "n_pairs": 12464,
+    "n_match": 2205,
+    "n_non_match": 10259,
     "n_hard_neg": 0,
-    "match_fraction": 0.1415
+    "match_fraction": 0.1769
   },
   "test": {
     "name": "test",
-    "n_pairs": 5477,
-    "n_match": 775,
-    "n_non_match": 4702,
+    "n_pairs": 4985,
+    "n_match": 882,
+    "n_non_match": 4103,
     "n_hard_neg": 0,
-    "match_fraction": 0.1415
+    "match_fraction": 0.1769
   }
 }

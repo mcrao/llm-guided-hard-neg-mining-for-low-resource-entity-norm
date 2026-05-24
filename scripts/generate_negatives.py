@@ -76,6 +76,10 @@ def main(
         "train_10pct",
         help=f"Training split to generate negatives for. One of: {VALID_SPLITS}",
     ),
+    category: str = typer.Option(
+        "computers",
+        help="WDC product category: computers | cameras | watches | shoes",
+    ),
     neg_type: str = typer.Option(
         "component_swap",
         "--type",
@@ -118,6 +122,8 @@ def main(
         help="Base URL for OpenAI-compatible local API (vLLM / Ollama).",
     ),
 ) -> None:
+    c = category.lower()
+
     # ── Validate ───────────────────────────────────────────────────────────────
     if neg_type not in VALID_TYPES:
         log.error(f"Invalid --type '{neg_type}'. Choose from: {VALID_TYPES}")
@@ -139,6 +145,7 @@ def main(
     mode = "[yellow]DRY RUN[/yellow]" if dry_run else "[green]LIVE[/green]"
     console.print(Panel(
         f"[bold]Hard Negative Generation[/bold] — {mode}\n"
+        f"Category: [cyan]{c}[/cyan] | "
         f"Split: [cyan]{split}[/cyan] | "
         f"Type: [cyan]{neg_type}[/cyan] | "
         f"Strategy: [cyan]{strategy}[/cyan] | "
@@ -149,7 +156,7 @@ def main(
 
     # ── Load split ─────────────────────────────────────────────────────────────
     log.info(f"Loading split [{split}] …")
-    split_df = load_split(SPLITS_DIR, split)
+    split_df = load_split(SPLITS_DIR, split, category=c)
     n_match  = (split_df["label"] == 1).sum()
     log.info(f"Split loaded: {len(split_df):,} pairs | {n_match:,} match pairs")
 
@@ -174,7 +181,7 @@ def main(
     # ── Save training-ready parquet ────────────────────────────────────────────
     NEG_DIR.mkdir(parents=True, exist_ok=True)
     safe_model = model.replace("/", "_")
-    out_path = NEG_DIR / f"{split}__{neg_type}__{strategy}__{safe_model}.parquet"
+    out_path = NEG_DIR / f"{c}__{split}__{neg_type}__{strategy}__{safe_model}.parquet"
 
     triplet_df = build_augmented_df(split_df, negatives_df, ratio=ratio)
     triplet_df.to_parquet(out_path, index=False)

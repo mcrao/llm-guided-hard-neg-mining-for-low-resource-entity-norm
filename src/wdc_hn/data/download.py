@@ -1,5 +1,5 @@
 """
-Download the WDC LSPC Computers dataset.
+Download any WDC LSPC product-matching category (computers, cameras, watches, shoes).
 
 Download strategies (tried in order):
   1. HuggingFace Hub (direct Parquet/file download via huggingface_hub,
@@ -14,9 +14,9 @@ Output schema (unified across all sources):
   is_hard_negative   (bool — True if negative was similarity-mined)
 
 Saved as Parquet files under data/raw/:
-  computers_train_{size}.parquet
-  computers_val.parquet
-  computers_test.parquet
+  {category}_train_{size}.parquet
+  {category}_val.parquet
+  {category}_test.parquet
 """
 
 from __future__ import annotations
@@ -42,30 +42,30 @@ _WDC_BASE = (
 )
 _WDC_REFERER = "https://webdatacommons.org/largescaleproductcorpus/v2/"
 
-_WDC_URLS: dict[str, str] = {
-    "train_small":  _WDC_BASE + "computers/computers_train_small.json.gz",
-    "train_medium": _WDC_BASE + "computers/computers_train_medium.json.gz",
-    "train_large":  _WDC_BASE + "computers/computers_train_large.json.gz",
-    "train_xlarge": _WDC_BASE + "computers/computers_train_xlarge.json.gz",
-    "val":          _WDC_BASE + "computers/computers_valid_66pair.json.gz",
-    "test":         _WDC_BASE + "computers/computers_gs.json.gz",
-}
+def _wdc_urls(category: str) -> dict[str, str]:
+    """Build WDC direct-download URL map for a given product category."""
+    c = category.lower()
+    return {
+        "train_small":  _WDC_BASE + f"{c}/{c}_train_small.json.gz",
+        "train_medium": _WDC_BASE + f"{c}/{c}_train_medium.json.gz",
+        "train_large":  _WDC_BASE + f"{c}/{c}_train_large.json.gz",
+        "train_xlarge": _WDC_BASE + f"{c}/{c}_train_xlarge.json.gz",
+        "val":          _WDC_BASE + f"{c}/{c}_valid_66pair.json.gz",
+        "test":         _WDC_BASE + f"{c}/{c}_gs.json.gz",
+    }
 
-# Fallback filenames to try if the primary val name fails
-_WDC_VAL_CANDIDATES = [
-    "computers_valid_66pair.json.gz",
-    "computers_valid.json.gz",
-    "computers_validation.json.gz",
-]
+def _wdc_val_candidates(category: str) -> list[str]:
+    """Fallback val filenames to try if the primary val name fails."""
+    c = category.lower()
+    return [
+        f"{c}_valid_66pair.json.gz",
+        f"{c}_valid.json.gz",
+        f"{c}_validation.json.gz",
+    ]
 
-# HuggingFace dataset ID and config map
+# HuggingFace dataset ID (configs follow the pattern "{category}_{size}")
 _HF_DATASET = "wdc/products-2017"
-_HF_CONFIG_MAP = {
-    "small":  "computers_small",
-    "medium": "computers_medium",
-    "large":  "computers_large",
-    "xlarge": "computers_xlarge",
-}
+_HF_SIZES = ["small", "medium", "large", "xlarge"]
 
 # ── Unified schema ──────────────────────────────────────────────────────────────
 _UNIFIED_COLS = [
@@ -247,6 +247,7 @@ def _load_json_gz(path: Path) -> list[dict]:
 def _try_huggingface(
     train_size: str,
     cache_dir: Optional[Path] = None,
+    category: str = "computers",
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
     Load via HuggingFace Hub by downloading data files directly.
@@ -260,7 +261,7 @@ def _try_huggingface(
     """
     from huggingface_hub import HfApi, hf_hub_download  # type: ignore
 
-    config = _HF_CONFIG_MAP.get(train_size, f"computers_{train_size}")
+    config = f"{category.lower()}_{train_size}"
     log.info(
         f"Checking HuggingFace Hub [{_HF_DATASET}] "
         f"for config=[cyan]{config}[/cyan] …"
@@ -351,6 +352,7 @@ def _try_huggingface(
 def _try_direct_download(
     train_size: str,
     raw_dir: Path,
+    category: str = "computers",
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
     Download JSON.gz files from the WDC LSPC server.
@@ -358,15 +360,16 @@ def _try_direct_download(
     Uses requests.Session (headers survive HTTP→HTTPS redirect); falls back
     to system curl when requests returns 403.
     """
+    urls = _wdc_urls(category)
     key = f"train_{train_size}"
-    if key not in _WDC_URLS:
+    if key not in urls:
         raise ValueError(
             f"Unknown train_size '{train_size}'. "
-            f"Choose from: {list(_HF_CONFIG_MAP.keys())}"
+            f"Choose from: {_HF_SIZES}"
         )
 
     # --- Training file ---
-    train_url = _WDC_URLS[key]
+    train_url = urls[key]
     train_gz = raw_dir / train_url.split("/")[-1]
     if not train_gz.exists():
         _download_file(train_url, train_gz)
@@ -374,7 +377,7 @@ def _try_direct_download(
     train_df = _normalise_wdc(_load_json_gz(train_gz))
 
     # --- Test / gold-standard file ---
-    test_url = _WDC_URLS["test"]
+    test_url = urls["test"]
     test_gz = raw_dir / test_url.split("/")[-1]
     try:
         if not test_gz.exists():
@@ -385,9 +388,10 @@ def _try_direct_download(
         test_df = pd.DataFrame(columns=_UNIFIED_COLS)
 
     # --- Validation file (try multiple candidate names) ---
+    c = category.lower()
     val_df = pd.DataFrame(columns=_UNIFIED_COLS)
-    for val_name in _WDC_VAL_CANDIDATES:
-        val_url = _WDC_BASE + "computers/" + val_name
+    for val_name in _wdc_val_candidates(category):
+        val_url = _WDC_BASE + f"{c}/" + val_name
         val_gz = raw_dir / val_name
         try:
             if not val_gz.exists():
@@ -405,17 +409,19 @@ def _try_direct_download(
 
 # ── Public API ─────────────────────────────────────────────────────────────────
 
-def download_wdc_computers(
+def download_wdc_category(
     raw_dir: Path,
+    category: str = "computers",
     train_size: str = "xlarge",
     force_redownload: bool = False,
     prefer_huggingface: bool = True,
 ) -> tuple[Path, Path, Path]:
     """
-    Download and cache the WDC LSPC Computers dataset.
+    Download and cache any WDC LSPC product category.
 
     Args:
         raw_dir:            Directory under which to save Parquet files.
+        category:           Product category: 'computers', 'cameras', 'watches', 'shoes'.
         train_size:         One of 'small', 'medium', 'large', 'xlarge'.
         force_redownload:   If True, re-download even if cache exists.
         prefer_huggingface: Try HuggingFace Hub first (default True).
@@ -425,10 +431,11 @@ def download_wdc_computers(
     """
     raw_dir = Path(raw_dir)
     raw_dir.mkdir(parents=True, exist_ok=True)
+    c = category.lower()
 
-    train_path = raw_dir / f"computers_train_{train_size}.parquet"
-    val_path   = raw_dir / "computers_val.parquet"
-    test_path  = raw_dir / "computers_test.parquet"
+    train_path = raw_dir / f"{c}_train_{train_size}.parquet"
+    val_path   = raw_dir / f"{c}_val.parquet"
+    test_path  = raw_dir / f"{c}_test.parquet"
 
     if not force_redownload and all(
         p.exists() for p in [train_path, val_path, test_path]
@@ -444,7 +451,7 @@ def download_wdc_computers(
     if prefer_huggingface:
         try:
             train_df, val_df, test_df = _try_huggingface(
-                train_size, cache_dir=raw_dir / ".hf_cache"
+                train_size, cache_dir=raw_dir / ".hf_cache", category=c
             )
             log.info("[green]✓[/green] Loaded from HuggingFace Hub.")
         except Exception as exc:
@@ -457,7 +464,9 @@ def download_wdc_computers(
     # ── Strategy 2+3: Direct WDC download (requests → curl) ─────────────────
     if train_df is None:
         try:
-            train_df, val_df, test_df = _try_direct_download(train_size, raw_dir)
+            train_df, val_df, test_df = _try_direct_download(
+                train_size, raw_dir, category=c
+            )
             log.info("[green]✓[/green] Downloaded from WDC LSPC server.")
         except Exception as exc:
             last_error = exc
@@ -469,13 +478,13 @@ def download_wdc_computers(
             "─── Manual download instructions ───────────────────────────\n"
             f"  1. Open in your browser:\n"
             f"       {_WDC_REFERER}\n"
-            f"  2. Scroll to 'Computers' and download:\n"
-            f"       • computers_train_{train_size}.json.gz  (training)\n"
-            f"       • computers_gs.json.gz                 (test / gold-standard)\n"
-            f"       • computers_valid_66pair.json.gz       (validation, optional)\n"
+            f"  2. Scroll to '{category.title()}' and download:\n"
+            f"       • {c}_train_{train_size}.json.gz  (training)\n"
+            f"       • {c}_gs.json.gz                 (test / gold-standard)\n"
+            f"       • {c}_valid_66pair.json.gz       (validation, optional)\n"
             f"  3. Place the downloaded files in:\n"
             f"       {raw_dir.resolve()}\n"
-            f"  4. Re-run:  uv run python scripts/prepare_data.py --no-hf\n"
+            f"  4. Re-run:  uv run python scripts/prepare_data.py --category {c} --no-hf\n"
             "──────────────────────────────────────────────────────────────"
         ) from last_error
 
@@ -503,6 +512,22 @@ def download_wdc_computers(
 
     _log_stats(train_path, val_path, test_path)
     return train_path, val_path, test_path
+
+
+def download_wdc_computers(
+    raw_dir: Path,
+    train_size: str = "xlarge",
+    force_redownload: bool = False,
+    prefer_huggingface: bool = True,
+) -> tuple[Path, Path, Path]:
+    """Backward-compatible alias for download_wdc_category(category='computers')."""
+    return download_wdc_category(
+        raw_dir=raw_dir,
+        category="computers",
+        train_size=train_size,
+        force_redownload=force_redownload,
+        prefer_huggingface=prefer_huggingface,
+    )
 
 
 def _validate(df: pd.DataFrame, split: str) -> None:

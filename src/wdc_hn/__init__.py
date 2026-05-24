@@ -5,4 +5,4 @@ Milestone 2: Data / Environment Setup & Baselines.
 """
 
 __version__ = "0.1.0"
-__author__ = "Manoj B."
+__author__ = "Anonymous"

@@ -30,6 +30,8 @@ dependencies = [
     "evaluate>=0.4.0",
     "openai>=2.32.0",
     "matplotlib>=3.10.8",
+    "plotly>=6.7.0",
+    "kaleido>=1.2.0",
 ]
 
 [project.optional-dependencies]
